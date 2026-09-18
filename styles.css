@@ -1,0 +1,255 @@
+/* Fav Sync 侧边栏 */
+
+.fav-sync-view {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fav-sync-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fav-sync-title {
+  margin: 0;
+  font-size: var(--font-ui-large);
+  font-weight: 600;
+}
+
+.fav-sync-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.fav-sync-icon-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.fav-sync-primary {
+  width: 100%;
+  padding: 8px 12px;
+  font-weight: 600;
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+  border: none;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.fav-sync-primary:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.fav-sync-status {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  min-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.fav-sync-status.is-error {
+  color: var(--text-error);
+}
+
+.fav-sync-bar-wrap {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
+}
+
+.fav-sync-bar {
+  height: 100%;
+  width: 0;
+  background: var(--interactive-accent);
+  transition: width 0.2s ease;
+}
+
+.fav-sync-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fav-sync-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+
+.fav-sync-card.is-disabled {
+  opacity: 0.55;
+}
+
+.fav-sync-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fav-sync-card-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.fav-sync-card-info {
+  min-width: 0;
+}
+
+.fav-sync-card-name {
+  font-weight: 600;
+  font-size: var(--font-ui-small);
+}
+
+.fav-sync-card-sub {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.fav-sync-card-btn {
+  padding: 4px 12px;
+  font-size: var(--font-ui-smaller);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fav-sync-card-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fav-sync-report {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fav-sync-report-title {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fav-sync-report-row {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.fav-sync-report-row.is-error {
+  color: var(--text-error);
+}
+
+.fav-sync-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.fav-sync-link {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.fav-sync-link:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+/* 设置页里的 Cookie 输入框 */
+.fav-sync-textarea {
+  width: 100%;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  resize: vertical;
+}
+
+/* 扫码登录弹窗 */
+.fav-sync-qr-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.fav-sync-qr-title {
+  margin: 0;
+}
+
+.fav-sync-qr-hint {
+  margin: 0;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.fav-sync-qr-box {
+  position: relative;
+  padding: 10px;
+  background: #fff;
+  border-radius: var(--radius-m);
+  line-height: 0;
+}
+
+.fav-sync-qr-canvas {
+  display: block;
+  border-radius: 2px;
+}
+
+.fav-sync-qr-overlay {
+  position: absolute;
+  inset: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.92);
+  color: #222;
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+  line-height: normal;
+  border-radius: 2px;
+}
+
+.fav-sync-qr-status {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  min-height: 20px;
+}
+
+.fav-sync-qr-status.is-ok {
+  color: var(--text-success);
+}
+
+.fav-sync-qr-status.is-error {
+  color: var(--text-error);
+}
+
+.fav-sync-qr-refresh {
+  cursor: pointer;
+}

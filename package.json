@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-fav-sync",
+  "version": "0.1.0",
+  "description": "把 B 站收藏夹与 X 书签同步成 Obsidian 笔记",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/run-smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.7.2",
+    "qrcode-generator": "^2.0.4",
+    "typescript": "^5.6.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
