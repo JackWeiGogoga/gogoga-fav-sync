@@ -1,9 +1,10 @@
 {
-  "id": "fav-sync",
-  "name": "Fav Sync",
+  "id": "gogoga-fav-sync",
+  "name": "gogoga Fav Sync",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
   "description": "把 B 站收藏夹与 X 书签同步成 Obsidian 笔记：按收藏夹分目录、自动打标签、增量同步。",
   "author": "jackwei",
-  "isDesktopOnly": false
+  "isDesktopOnly": false,
+  "authorUrl": "https://github.com/JackWeiGogoga"
 }

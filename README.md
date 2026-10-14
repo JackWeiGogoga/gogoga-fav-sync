@@ -1,4 +1,4 @@
-# Fav Sync
+# gogoga Fav Sync
 
 把 **B 站收藏夹**与 **X（Twitter）书签**同步成 Obsidian 笔记。
 
@@ -65,7 +65,7 @@ BILI_COOKIE="SESSDATA=...; DedeUserID=..." pnpm smoke   # additionally 跑通真
 ```
 
 安装到 vault：把 `dist/main.js`、`manifest.json`、`styles.css` 放进
-`<vault>/.obsidian/plugins/fav-sync/`。
+`<vault>/.obsidian/plugins/gogoga-fav-sync/`。
 
 ## 已知边界
 
@@ -76,3 +76,14 @@ BILI_COOKIE="SESSDATA=...; DedeUserID=..." pnpm smoke   # additionally 跑通真
 ## 致谢
 
 B 站 WBI 签名的混排表与算法参考 [omni-collector](https://github.com/simonemuller6127-png/omni-collector)（MIT）。
+
+## 网络与隐私
+
+- **B 站**：`api.bilibili.com`（收藏夹、稍后再看）、`passport.bilibili.com`（扫码登录换取 Cookie）。需要 B 站账号。
+- **X**：`x.com` 的内部 GraphQL 接口读取书签，使用你在设置里填的 Cookie。需要 X 账号。
+- Cookie 以明文保存在本插件的 `data.json` 里（会随 vault 一起同步），只发给对应平台；没有遥测，也不经过任何第三方服务。
+- 使用平台的非公开接口，可能随平台改版失效，也可能不符合平台的服务条款，请自行评估。
+
+## 许可
+
+MIT，见 [LICENSE](LICENSE)。
