@@ -1,6 +1,6 @@
 {
   "name": "gogoga-fav-sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "把 B 站收藏夹与 X 书签同步成 Obsidian 笔记",
   "private": true,
   "type": "module",
