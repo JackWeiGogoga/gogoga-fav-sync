@@ -10,6 +10,7 @@
 import type { CollectItem, HttpClient, MediaRef, ProgressFn } from "../types";
 import { X_BEARER, type XSettings } from "../settings";
 import { sleep, truncate } from "../core/util";
+import { t } from "../i18n";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -67,10 +68,71 @@ function headers(s: XSettings): Record<string, string> {
   };
 }
 
-/* GraphQL 响应结构复杂且多变，这里只声明用到的部分，其余按 unknown 处理。 */
-type Json = Record<string, any>;
+/*
+ * GraphQL 响应结构复杂且多变，这里只声明用到的字段，且全部可选。
+ * 仅是类型声明，运行时仍按原样做空值兜底。
+ */
+interface XUserNames {
+  screen_name?: string;
+  name?: string;
+}
 
-function pickUser(result: Json): { name?: string; screenName?: string } {
+interface XUser {
+  core?: XUserNames;
+  legacy?: XUserNames;
+}
+
+interface XVariant {
+  content_type?: string;
+  url?: string;
+  bitrate?: number;
+}
+
+interface XMedia {
+  type?: string;
+  media_url_https?: unknown;
+  video_info?: { variants?: XVariant[] };
+}
+
+interface XTweet {
+  /** 受限可见性的推文会多包一层。 */
+  tweet?: XTweet;
+  rest_id?: string;
+  core?: { user_results?: { result?: XUser } };
+  note_tweet?: { note_tweet_results?: { result?: { text?: unknown } } };
+  legacy?: {
+    id_str?: string;
+    full_text?: unknown;
+    created_at?: string;
+    extended_entities?: { media?: XMedia[] };
+    entities?: { media?: XMedia[]; hashtags?: Array<{ text?: string }> };
+  };
+  quoted_status_result?: { result?: XTweet };
+}
+
+interface XEntry {
+  entryId?: string;
+  content?: {
+    value?: string;
+    itemContent?: { tweet_results?: { result?: XTweet } };
+  };
+}
+
+interface XInstruction {
+  type?: string;
+  entries?: XEntry[];
+}
+
+interface XTimeline {
+  timeline?: { instructions?: XInstruction[] };
+}
+
+interface XBookmarksResponse {
+  data?: { bookmark_timeline_v2?: XTimeline; bookmark_timeline?: XTimeline };
+  errors?: Array<{ message?: string }>;
+}
+
+function pickUser(result: XTweet): { name?: string; screenName?: string } {
   const user = result?.core?.user_results?.result ?? {};
   // 新版把字段挪到了 core 下，旧版在 legacy，两者都兜住
   const screenName = user?.core?.screen_name ?? user?.legacy?.screen_name;
@@ -78,15 +140,15 @@ function pickUser(result: Json): { name?: string; screenName?: string } {
   return { name, screenName };
 }
 
-function pickText(result: Json): string {
+function pickText(result: XTweet): string {
   const note = result?.note_tweet?.note_tweet_results?.result?.text;
   if (typeof note === "string" && note.length > 0) return note;
   const full = result?.legacy?.full_text;
   return typeof full === "string" ? full : "";
 }
 
-function pickMedia(result: Json): MediaRef[] {
-  const list: Json[] =
+function pickMedia(result: XTweet): MediaRef[] {
+  const list: XMedia[] =
     result?.legacy?.extended_entities?.media ?? result?.legacy?.entities?.media ?? [];
   const out: MediaRef[] = [];
   for (const m of list) {
@@ -96,7 +158,7 @@ function pickMedia(result: Json): MediaRef[] {
       continue;
     }
     // video / animated_gif：挑码率最高的 mp4
-    const variants: Json[] = m?.video_info?.variants ?? [];
+    const variants: XVariant[] = m?.video_info?.variants ?? [];
     const mp4 = variants
       .filter((v) => v?.content_type === "video/mp4" && typeof v?.url === "string")
       .sort((a, b) => (b?.bitrate ?? 0) - (a?.bitrate ?? 0))[0];
@@ -109,8 +171,8 @@ function pickMedia(result: Json): MediaRef[] {
   return out;
 }
 
-function pickHashtags(result: Json): string[] {
-  const tags: Json[] = result?.legacy?.entities?.hashtags ?? [];
+function pickHashtags(result: XTweet): string[] {
+  const tags: Array<{ text?: string }> = result?.legacy?.entities?.hashtags ?? [];
   return tags.map((t) => String(t?.text ?? "")).filter(Boolean);
 }
 
@@ -122,9 +184,9 @@ function toIso(createdAt?: string): string | undefined {
 }
 
 /** 从 tweet_results.result 解出统一条目；无法识别时返回 null。 */
-function tweetToItem(rawResult: Json): CollectItem | null {
+function tweetToItem(rawResult: XTweet): CollectItem | null {
   // 受限可见性的推文会多包一层
-  const result: Json = rawResult?.tweet ?? rawResult;
+  const result: XTweet = rawResult?.tweet ?? rawResult;
   const id = result?.rest_id ?? result?.legacy?.id_str;
   if (!id) return null;
 
@@ -161,8 +223,8 @@ function tweetToItem(rawResult: Json): CollectItem | null {
 }
 
 /** 遍历 GraphQL 返回的 instructions，取出推文条目与下一页游标。 */
-function parseTimeline(json: Json): { items: CollectItem[]; cursor?: string } {
-  const instructions: Json[] =
+function parseTimeline(json: XBookmarksResponse): { items: CollectItem[]; cursor?: string } {
+  const instructions: XInstruction[] =
     json?.data?.bookmark_timeline_v2?.timeline?.instructions ??
     json?.data?.bookmark_timeline?.timeline?.instructions ??
     [];
@@ -171,7 +233,7 @@ function parseTimeline(json: Json): { items: CollectItem[]; cursor?: string } {
 
   for (const ins of instructions) {
     if (ins?.type !== "TimelineAddEntries") continue;
-    for (const entry of (ins?.entries ?? []) as Json[]) {
+    for (const entry of ins?.entries ?? []) {
       const entryId = String(entry?.entryId ?? "");
       if (entryId.startsWith("cursor-bottom-")) {
         cursor = entry?.content?.value;
@@ -202,7 +264,7 @@ export async function fetchX(
   opts?: XFetchOptions,
 ): Promise<CollectItem[]> {
   if (!settings.authToken || !settings.csrfToken) {
-    throw new XError("请先填写 auth_token 与 ct0");
+    throw new XError(t("error.x.noTokens"));
   }
 
   const all = new Map<string, CollectItem>();
@@ -225,25 +287,22 @@ export async function fetchX(
     });
 
     if (res.status === 404) {
-      throw new XError(
-        "queryId 已失效（404）。请在浏览器打开 x.com/i/bookmarks，" +
-          "开发者工具 Network 里找到 Bookmarks 请求，把 URL 中 /graphql/ 后面那段填到设置里。",
-      );
+      throw new XError(t("error.x.queryIdExpired"));
     }
     if (res.status === 401 || res.status === 403) {
-      throw new XError(`登录态无效（HTTP ${res.status}），请重新复制 auth_token 与 ct0`);
+      throw new XError(t("error.x.unauthorized", { status: res.status }));
     }
     if (res.status === 429) {
-      throw new XError("触发 X 速率限制（429），请稍后再试");
+      throw new XError(t("error.x.rateLimited"));
     }
     if (res.status >= 400) {
-      throw new XError(`X 接口返回 HTTP ${res.status}`);
+      throw new XError(t("error.x.http", { status: res.status }));
     }
 
-    const json = res.json<Json>();
+    const json = res.json<XBookmarksResponse>();
     if (Array.isArray(json?.errors) && json.errors.length > 0) {
-      const msg = json.errors.map((e: Json) => e?.message).filter(Boolean).join("; ");
-      throw new XError(`X 接口报错：${msg || "未知错误"}`);
+      const msg = json.errors.map((e) => e?.message).filter(Boolean).join("; ");
+      throw new XError(t("error.x.api", { message: msg || t("error.x.unknown") }));
     }
 
     const { items, cursor: next } = parseTimeline(json);
@@ -258,7 +317,7 @@ export async function fetchX(
     }
     onProgress?.({
       phase: "fetch",
-      message: `第 ${page} 页，累计 ${all.size} 条`,
+      message: t("progress.xPage", { page, total: all.size }),
       current: page,
       total: settings.maxPages,
     });

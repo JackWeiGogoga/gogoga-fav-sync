@@ -6,7 +6,7 @@
  * - 索引里有且文件在 → 按设置刷新机器区（用户手写区保留）
  * - 目标路径变了（比如换了收藏夹）→ 连同笔记一起重命名，不产生重复
  */
-import type { App, TFile } from "obsidian";
+import type { App } from "obsidian";
 import { normalizePath, TFolder } from "obsidian";
 import type { CollectItem, Platform, ProgressFn, SyncReport } from "../types";
 import { emptyReport } from "../types";
@@ -18,7 +18,9 @@ import { obsidianHttp } from "./http";
 import { fetchBilibili } from "../sources/bilibili";
 import { fetchX } from "../sources/x";
 import { normalizeCookieInput } from "./util";
+import { t } from "../i18n";
 
+/** 写进笔记的用户区标题。属于笔记数据而非界面文案，不随语言变化，否则已有笔记的结构会变。 */
 const USER_SECTION = "我的笔记";
 
 export class SyncService {
@@ -46,7 +48,7 @@ export class SyncService {
     try {
       if (platform === "bilibili") {
         const cookie = normalizeCookieInput(settings.bilibili.cookie);
-        if (!cookie) throw new Error("尚未填写 B 站 Cookie");
+        if (!cookie) throw new Error(t("error.noBilibiliCookie"));
         const res = await fetchBilibili(obsidianHttp, settings.bilibili, cookie, onProgress, {
           incremental,
           watermarks: state.bilibili?.folders ?? {},
@@ -64,7 +66,7 @@ export class SyncService {
     } catch (err) {
       report.errors.push(err instanceof Error ? err.message : String(err));
       report.finishedAt = new Date().toISOString();
-      onProgress?.({ phase: "error", message: report.errors[0] ?? "采集失败" });
+      onProgress?.({ phase: "error", message: report.errors[0] ?? t("progress.fetchFailed") });
       return report;
     }
 
@@ -78,7 +80,11 @@ export class SyncService {
     await this.index.save();
     onProgress?.({
       phase: "done",
-      message: `新增 ${report.created} / 更新 ${report.updated} / 跳过 ${report.skipped}`,
+      message: t("progress.done", {
+        created: report.created,
+        updated: report.updated,
+        skipped: report.skipped,
+      }),
     });
     return report;
   }
@@ -155,15 +161,15 @@ export class SyncService {
       const item = ordered[i];
       if (!item) continue;
       if (i % 20 === 0) {
-        onProgress?.({ phase: "write", message: "写入笔记", current: i, total: ordered.length });
+        onProgress?.({ phase: "write", message: t("progress.writing"), current: i, total: ordered.length });
       }
 
       const targets = targetsFor(item, org, settings.rootFolder);
-      for (let t = 0; t < targets.length; t += 1) {
-        const target = targets[t];
+      for (let ti = 0; ti < targets.length; ti += 1) {
+        const target = targets[ti];
         if (!target) continue;
         // multiFolderMode=all 时，同一条目的第 2 个及以后的副本用带后缀的索引 key
-        const indexId = t === 0 ? item.id : `${item.id}#${t}`;
+        const indexId = ti === 0 ? item.id : `${item.id}#${ti}`;
         try {
           const tags = tagsFor(item, org, target.folder);
 
@@ -194,7 +200,7 @@ export class SyncService {
             const before = await this.app.vault.read(file);
             const after = updateNote(before, item, tags, buildOpts);
             if (after !== before) {
-              await this.app.vault.modify(file as TFile, after);
+              await this.app.vault.modify(file, after);
               report.updated += 1;
             } else {
               report.skipped += 1;
@@ -208,7 +214,7 @@ export class SyncService {
         } catch (err) {
           report.failed += 1;
           const msg = err instanceof Error ? err.message : String(err);
-          if (report.errors.length < 10) report.errors.push(`${item.title}：${msg}`);
+          if (report.errors.length < 10) report.errors.push(t("error.itemFailed", { title: item.title, error: msg }));
         }
       }
     }
@@ -250,7 +256,7 @@ export class SyncService {
       const file = files[i];
       if (!file) continue;
       if (i % 50 === 0) {
-        onProgress?.({ phase: "write", message: "扫描笔记", current: i, total: files.length });
+        onProgress?.({ phase: "write", message: t("progress.scanning"), current: i, total: files.length });
       }
       const cache = this.app.metadataCache.getFileCache(file);
       const fm = cache?.frontmatter as { source?: string; id?: string; collected?: string } | undefined;

@@ -12,6 +12,7 @@ import type { BilibiliSettings } from "../settings";
 import type { FolderMark } from "../core/index-store";
 import { getMixinKey, keyFromUrl, signParams } from "./wbi";
 import { parseCookie, sleep, tsToIso } from "../core/util";
+import { t } from "../i18n";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -68,27 +69,24 @@ export class BilibiliError extends Error {}
 function parseBili<T>(res: { status: number; text: string; json<X>(): X }, what: string): BiliResp<T> {
   const head = res.text.trimStart().slice(0, 1);
   if (head === "<") {
-    throw new BilibiliError(
-      `${what}：B 站返回了网页而非数据，通常是请求过于频繁触发了风控。` +
-        `请等几分钟再同步，并把「请求间隔」调大一些。`,
-    );
+    throw new BilibiliError(t("error.bili.htmlResponse", { what }));
   }
   try {
     return res.json<BiliResp<T>>();
   } catch {
-    throw new BilibiliError(`${what}：响应无法解析（HTTP ${res.status}）`);
+    throw new BilibiliError(t("error.bili.unparsable", { what, status: res.status }));
   }
 }
 
 /** 取 wbi 混淆密钥，同时验证 cookie 是否有效。 */
 async function fetchMixinKey(http: HttpClient, cookie: string): Promise<string> {
   const res = await http.get(NAV_URL, { headers: headers(cookie) });
-  const json = parseBili<{ isLogin?: boolean; wbi_img?: { img_url?: string; sub_url?: string } }>(res, "登录态校验");
+  const json = parseBili<{ isLogin?: boolean; wbi_img?: { img_url?: string; sub_url?: string } }>(res, t("error.bili.loginCheck"));
   const img = json.data?.wbi_img;
   const key = getMixinKey(keyFromUrl(img?.img_url), keyFromUrl(img?.sub_url));
-  if (!key) throw new BilibiliError("拿不到 WBI 密钥，接口可能已变更");
+  if (!key) throw new BilibiliError(t("error.bili.noWbiKey"));
   if (json.data?.isLogin === false) {
-    throw new BilibiliError("Cookie 未登录或已失效，请重新导入");
+    throw new BilibiliError(t("error.bili.notLoggedIn"));
   }
   return key;
 }
@@ -99,9 +97,9 @@ async function fetchFolders(http: HttpClient, cookie: string, mid: string): Prom
     params: { up_mid: mid, jsonp: "jsonp" },
     headers: headers(cookie),
   });
-  const json = parseBili<{ list?: BiliFolder[] }>(res, "获取收藏夹列表");
+  const json = parseBili<{ list?: BiliFolder[] }>(res, t("error.bili.folderList"));
   if (json.code !== 0) {
-    throw new BilibiliError(`收藏夹列表获取失败：${json.code} ${json.message ?? ""}`);
+    throw new BilibiliError(t("error.bili.folderListFailed", { code: json.code, message: json.message ?? "" }));
   }
   return json.data?.list ?? [];
 }
@@ -150,7 +148,7 @@ function mergeItem(map: Map<string, CollectItem>, item: CollectItem): void {
 /** 仅验证 Cookie 并返回收藏夹名列表，供设置页「测试连接」使用。 */
 export async function listBilibiliFolders(http: HttpClient, cookie: string): Promise<string[]> {
   const mid = parseCookie(cookie)["DedeUserID"];
-  if (!mid) throw new BilibiliError("Cookie 里缺少 DedeUserID，请确认是登录后导出的");
+  if (!mid) throw new BilibiliError(t("error.bili.noDedeUserId"));
   await fetchMixinKey(http, cookie);
   const folders = await fetchFolders(http, cookie, mid);
   return folders.map((f) => f.title);
@@ -184,7 +182,7 @@ export async function fetchBilibili(
 ): Promise<BilibiliFetchResult> {
   const jar = parseCookie(cookie);
   const mid = jar["DedeUserID"];
-  if (!mid) throw new BilibiliError("Cookie 里缺少 DedeUserID，请确认是登录后导出的");
+  if (!mid) throw new BilibiliError(t("error.bili.noDedeUserId"));
 
   const incremental = opts?.incremental ?? false;
   const oldMarks = opts?.watermarks ?? {};
@@ -213,7 +211,7 @@ export async function fetchBilibili(
     usedFolders.push(folder.title);
     onProgress?.({
       phase: "fetch",
-      message: `收藏夹「${folder.title}」`,
+      message: t("progress.folder", { name: folder.title }),
       current: fi + 1,
       total: folders.length,
     });
@@ -245,11 +243,11 @@ export async function fetchBilibili(
       );
       const res = await http.get(FAV_LIST_URL, { params, headers: headers(cookie) });
       requests += 1;
-      const json = parseBili<{ medias?: BiliMedia[]; has_more?: boolean }>(res, `收藏夹「${folder.title}」`);
+      const json = parseBili<{ medias?: BiliMedia[]; has_more?: boolean }>(res, t("progress.folder", { name: folder.title }));
       if (json.code !== 0) {
         // 412/-352 是风控，直接中止本次同步，避免继续触发
         if (json.code === -412 || json.code === -352) {
-          throw new BilibiliError(`触发 B 站风控（code ${json.code}），请稍后再试并调大请求间隔`);
+          throw new BilibiliError(t("error.bili.riskControl", { code: json.code }));
         }
         break;
       }
@@ -286,12 +284,12 @@ export async function fetchBilibili(
   }
 
   if (settings.includeWatchLater) {
-    onProgress?.({ phase: "fetch", message: "稍后再看" });
+    onProgress?.({ phase: "fetch", message: t("progress.watchLater") });
     try {
       const params = signParams({ pn: "1", ps: "50" }, mixinKey);
       const res = await http.get(WATCH_LATER_URL, { params, headers: headers(cookie) });
       requests += 1;
-      const json = parseBili<{ list?: Array<BiliMedia & { pic?: string; add_at?: number }> }>(res, "稍后再看");
+      const json = parseBili<{ list?: Array<BiliMedia & { pic?: string; add_at?: number }> }>(res, t("progress.watchLater"));
       if (json.code === 0) {
         for (const m of json.data?.list ?? []) {
           const item = mediaToItem(

@@ -1,6 +1,6 @@
 {
   "name": "gogoga-fav-sync",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "把 B 站收藏夹与 X 书签同步成 Obsidian 笔记",
   "private": true,
   "type": "module",
@@ -8,15 +8,20 @@
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit && node esbuild.config.mjs production",
     "typecheck": "tsc --noEmit",
-    "smoke": "node scripts/run-smoke.mjs"
+    "smoke": "node scripts/run-smoke.mjs",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@eslint/json": "0.14.0",
     "@types/node": "^22.0.0",
-    "builtin-modules": "^4.0.0",
     "esbuild": "^0.24.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "0.4.2",
     "obsidian": "^1.7.2",
     "qrcode-generator": "^2.0.4",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.71.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

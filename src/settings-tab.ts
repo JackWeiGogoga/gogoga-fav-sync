@@ -1,6 +1,16 @@
 import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import type FavSyncPlugin from "./main";
 import type { OrganizeSettings } from "./settings";
+import { t } from "./i18n";
+
+/**
+ * 根目录留空时的回退值。它会成为真实的文件夹名，属于数据，不随界面语言变化；
+ * 占位符也显示它，让用户知道留空会落到哪里。
+ */
+const ROOT_FOLDER_FALLBACK = "收藏";
+
+/** 排除列表的占位示例：B 站自带的默认收藏夹就叫这个名字，与界面语言无关。 */
+const BLOCKLIST_EXAMPLE = "默认收藏夹";
 
 /** 逗号/换行分隔的输入 → 字符串数组。 */
 function toList(raw: string): string[] {
@@ -24,80 +34,77 @@ export class FavSyncSettingTab extends PluginSettingTab {
     const s = this.plugin.settings;
 
     // ---------- 通用 ----------
-    new Setting(containerEl).setName("通用").setHeading();
+    new Setting(containerEl).setName(t("settings.general")).setHeading();
 
     new Setting(containerEl)
-      .setName("根目录")
-      .setDesc("所有收藏笔记写入这个目录下")
-      .addText((t) =>
-        t
-          .setPlaceholder("收藏")
+      .setName(t("settings.rootFolder.name"))
+      .setDesc(t("settings.rootFolder.desc"))
+      .addText((c) =>
+        c
+          .setPlaceholder(ROOT_FOLDER_FALLBACK)
           .setValue(s.rootFolder)
           .onChange(async (v) => {
-            s.rootFolder = v.trim() || "收藏";
+            s.rootFolder = v.trim() || ROOT_FOLDER_FALLBACK;
             await this.plugin.saveSettings();
           }),
       );
 
     new Setting(containerEl)
-      .setName("增量同步")
-      .setDesc(
-        "只拉上次同步之后新增的内容，请求数大幅减少。" +
-          "关闭则每次重扫全部；也可用命令面板的「全量同步」临时做一次彻底重扫。",
-      )
-      .addToggle((t) =>
-        t.setValue(s.incrementalSync).onChange(async (v) => {
+      .setName(t("settings.incremental.name"))
+      .setDesc(t("settings.incremental.desc"))
+      .addToggle((c) =>
+        c.setValue(s.incrementalSync).onChange(async (v) => {
           s.incrementalSync = v;
           await this.plugin.saveSettings();
         }),
       );
 
     new Setting(containerEl)
-      .setName("更新已有笔记")
-      .setDesc("重新同步时刷新笔记的机器区；你手写的内容始终保留")
-      .addToggle((t) =>
-        t.setValue(s.updateExisting).onChange(async (v) => {
+      .setName(t("settings.updateExisting.name"))
+      .setDesc(t("settings.updateExisting.desc"))
+      .addToggle((c) =>
+        c.setValue(s.updateExisting).onChange(async (v) => {
           s.updateExisting = v;
           await this.plugin.saveSettings();
         }),
       );
 
     new Setting(containerEl)
-      .setName("嵌入播放器")
-      .setDesc("用 iframe 嵌入官方播放器，可在笔记里直接播放视频；开启时不再显示静态封面")
-      .addToggle((t) =>
-        t.setValue(s.embedPlayer).onChange(async (v) => {
+      .setName(t("settings.embedPlayer.name"))
+      .setDesc(t("settings.embedPlayer.desc"))
+      .addToggle((c) =>
+        c.setValue(s.embedPlayer).onChange(async (v) => {
           s.embedPlayer = v;
           await this.plugin.saveSettings();
         }),
       );
 
     new Setting(containerEl)
-      .setName("嵌入封面图")
-      .setDesc("没有播放器时的兜底，在笔记正文里显示封面")
-      .addToggle((t) =>
-        t.setValue(s.embedCover).onChange(async (v) => {
+      .setName(t("settings.embedCover.name"))
+      .setDesc(t("settings.embedCover.desc"))
+      .addToggle((c) =>
+        c.setValue(s.embedCover).onChange(async (v) => {
           s.embedCover = v;
           await this.plugin.saveSettings();
         }),
       );
 
     // ---------- B 站 ----------
-    new Setting(containerEl).setName("B 站").setHeading();
+    new Setting(containerEl).setName(t("platform.bilibili")).setHeading();
 
-    new Setting(containerEl).setName("启用").addToggle((t) =>
-      t.setValue(s.bilibili.enabled).onChange(async (v) => {
+    new Setting(containerEl).setName(t("settings.enabled")).addToggle((c) =>
+      c.setValue(s.bilibili.enabled).onChange(async (v) => {
         s.bilibili.enabled = v;
         await this.plugin.saveSettings();
       }),
     );
 
     new Setting(containerEl)
-      .setName("扫码登录")
-      .setDesc("用手机 B 站 App 扫码，自动获取 Cookie，不用再去浏览器里复制粘贴")
+      .setName(t("settings.qrLogin.name"))
+      .setDesc(t("settings.qrLogin.desc"))
       .addButton((b) =>
         b
-          .setButtonText("扫码登录")
+          .setButtonText(t("settings.qrLogin.button"))
           .setCta()
           .onClick(() => {
             // 登录成功后重绘设置页，让 Cookie 字段显示新值
@@ -106,51 +113,54 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Cookie")
-      .setDesc("一般不用手动填——用上面的扫码登录即可。也可粘贴 Cookie-Editor 导出的 JSON 或 SESSDATA=xxx; 字符串。只保存在本地。")
-      .addTextArea((t) => {
-        t.setPlaceholder("[{\"name\":\"SESSDATA\",...}] 或 SESSDATA=...; DedeUserID=...")
+      .setName(t("settings.cookie.name"))
+      .setDesc(t("settings.cookie.desc"))
+      .addTextArea((c) => {
+        c.setPlaceholder(t("settings.cookie.placeholder"))
           .setValue(s.bilibili.cookie)
           .onChange(async (v) => {
             s.bilibili.cookie = v.trim();
             await this.plugin.saveSettings();
           });
-        t.inputEl.rows = 3;
-        t.inputEl.addClass("fav-sync-textarea");
+        c.inputEl.rows = 3;
+        c.inputEl.addClass("fav-sync-textarea");
       });
 
     new Setting(containerEl)
-      .setName("测试连接")
-      .setDesc("验证 Cookie 是否有效并列出收藏夹")
+      .setName(t("settings.testConnection.name"))
+      .setDesc(t("settings.testConnection.desc"))
       .addButton((b) =>
-        b.setButtonText("测试").onClick(async () => {
-          b.setDisabled(true).setButtonText("测试中…");
+        b.setButtonText(t("settings.test")).onClick(async () => {
+          b.setDisabled(true).setButtonText(t("settings.testing"));
           try {
             const folders = await this.plugin.testBilibili();
-            new Notice(`✅ 连接正常，共 ${folders.length} 个收藏夹：\n${folders.join("、")}`, 8000);
+            new Notice(
+              t("notice.testBilibiliOk", { count: folders.length, folders: folders.join(t("list.sep")) }),
+              8000,
+            );
           } catch (err) {
-            new Notice(`❌ ${err instanceof Error ? err.message : String(err)}`, 8000);
+            new Notice(t("notice.testFailed", { error: err instanceof Error ? err.message : String(err) }), 8000);
           } finally {
-            b.setDisabled(false).setButtonText("测试");
+            b.setDisabled(false).setButtonText(t("settings.test"));
           }
         }),
       );
 
     new Setting(containerEl)
-      .setName("同步「稍后再看」")
-      .addToggle((t) =>
-        t.setValue(s.bilibili.includeWatchLater).onChange(async (v) => {
+      .setName(t("settings.watchLater.name"))
+      .addToggle((c) =>
+        c.setValue(s.bilibili.includeWatchLater).onChange(async (v) => {
           s.bilibili.includeWatchLater = v;
           await this.plugin.saveSettings();
         }),
       );
 
     new Setting(containerEl)
-      .setName("只同步这些收藏夹")
-      .setDesc("收藏夹名，逗号分隔；留空表示全部")
-      .addText((t) =>
-        t
-          .setPlaceholder("音乐, 相声")
+      .setName(t("settings.allowlist.name"))
+      .setDesc(t("settings.allowlist.desc"))
+      .addText((c) =>
+        c
+          .setPlaceholder(t("settings.allowlist.placeholder"))
           .setValue(s.bilibili.folderAllowlist.join(", "))
           .onChange(async (v) => {
             s.bilibili.folderAllowlist = toList(v);
@@ -159,11 +169,11 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("排除这些收藏夹")
-      .setDesc("收藏夹名，逗号分隔")
-      .addText((t) =>
-        t
-          .setPlaceholder("默认收藏夹")
+      .setName(t("settings.blocklist.name"))
+      .setDesc(t("settings.blocklist.desc"))
+      .addText((c) =>
+        c
+          .setPlaceholder(BLOCKLIST_EXAMPLE)
           .setValue(s.bilibili.folderBlocklist.join(", "))
           .onChange(async (v) => {
             s.bilibili.folderBlocklist = toList(v);
@@ -171,11 +181,11 @@ export class FavSyncSettingTab extends PluginSettingTab {
           }),
       );
 
-    this.addOrganizeSettings(containerEl, s.bilibili, "B 站");
+    this.addOrganizeSettings(containerEl, s.bilibili, t("platform.bilibili"));
 
     new Setting(containerEl)
-      .setName("请求间隔")
-      .setDesc("毫秒。太快容易触发 B 站风控，建议不低于 500")
+      .setName(t("settings.requestDelay.name"))
+      .setDesc(t("settings.requestDelay.desc"))
       .addSlider((sl) =>
         sl
           .setLimits(300, 3000, 100)
@@ -188,8 +198,8 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("每个收藏夹最多翻页")
-      .setDesc(`每页 ${s.bilibili.pageSize} 条`)
+      .setName(t("settings.maxPagesPerFolder.name"))
+      .setDesc(t("settings.perPage", { n: s.bilibili.pageSize }))
       .addSlider((sl) =>
         sl
           .setLimits(1, 100, 1)
@@ -202,10 +212,10 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     // ---------- X ----------
-    new Setting(containerEl).setName("X（Twitter）").setHeading();
+    new Setting(containerEl).setName(t("settings.xHeading")).setHeading();
 
-    new Setting(containerEl).setName("启用").addToggle((t) =>
-      t.setValue(s.x.enabled).onChange(async (v) => {
+    new Setting(containerEl).setName(t("settings.enabled")).addToggle((c) =>
+      c.setValue(s.x.enabled).onChange(async (v) => {
         s.x.enabled = v;
         await this.plugin.saveSettings();
       }),
@@ -213,60 +223,57 @@ export class FavSyncSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("auth_token")
-      .setDesc("x.com 的 Cookie，开发者工具 → Application → Cookies 里复制")
-      .addText((t) => {
-        t.setValue(s.x.authToken).onChange(async (v) => {
+      .setDesc(t("settings.authToken.desc"))
+      .addText((c) => {
+        c.setValue(s.x.authToken).onChange(async (v) => {
           s.x.authToken = v.trim();
           await this.plugin.saveSettings();
         });
-        t.inputEl.type = "password";
+        c.inputEl.type = "password";
       });
 
     new Setting(containerEl)
       .setName("ct0")
-      .setDesc("同上，另一个 Cookie，同时用作 CSRF token")
-      .addText((t) => {
-        t.setValue(s.x.csrfToken).onChange(async (v) => {
+      .setDesc(t("settings.ct0.desc"))
+      .addText((c) => {
+        c.setValue(s.x.csrfToken).onChange(async (v) => {
           s.x.csrfToken = v.trim();
           await this.plugin.saveSettings();
         });
-        t.inputEl.type = "password";
+        c.inputEl.type = "password";
       });
 
     new Setting(containerEl)
       .setName("queryId")
-      .setDesc(
-        "X 内部接口标识，改版后可能失效。届时打开 x.com/i/bookmarks，" +
-          "Network 面板找到 Bookmarks 请求，复制 URL 里 /graphql/ 后面那段。",
-      )
-      .addText((t) =>
-        t.setValue(s.x.queryId).onChange(async (v) => {
+      .setDesc(t("settings.queryId.desc"))
+      .addText((c) =>
+        c.setValue(s.x.queryId).onChange(async (v) => {
           s.x.queryId = v.trim();
           await this.plugin.saveSettings();
         }),
       );
 
     new Setting(containerEl)
-      .setName("测试连接")
+      .setName(t("settings.testConnection.name"))
       .addButton((b) =>
-        b.setButtonText("测试").onClick(async () => {
-          b.setDisabled(true).setButtonText("测试中…");
+        b.setButtonText(t("settings.test")).onClick(async () => {
+          b.setDisabled(true).setButtonText(t("settings.testing"));
           try {
             const n = await this.plugin.testX();
-            new Notice(`✅ 连接正常，首页取到 ${n} 条书签`, 6000);
+            new Notice(t("notice.testXOk", { n }), 6000);
           } catch (err) {
-            new Notice(`❌ ${err instanceof Error ? err.message : String(err)}`, 10000);
+            new Notice(t("notice.testFailed", { error: err instanceof Error ? err.message : String(err) }), 10000);
           } finally {
-            b.setDisabled(false).setButtonText("测试");
+            b.setDisabled(false).setButtonText(t("settings.test"));
           }
         }),
       );
 
-    this.addOrganizeSettings(containerEl, s.x, "X");
+    this.addOrganizeSettings(containerEl, s.x, t("platform.x"));
 
     new Setting(containerEl)
-      .setName("最多翻页")
-      .setDesc(`每页 ${s.x.pageSize} 条`)
+      .setName(t("settings.maxPages.name"))
+      .setDesc(t("settings.perPage", { n: s.x.pageSize }))
       .addSlider((sl) =>
         sl
           .setLimits(1, 50, 1)
@@ -279,13 +286,13 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     // ---------- 自动同步 ----------
-    new Setting(containerEl).setName("自动同步").setHeading();
+    new Setting(containerEl).setName(t("settings.autoSync")).setHeading();
 
     new Setting(containerEl)
-      .setName("启用定时同步")
-      .setDesc("Obsidian 打开期间按间隔自动拉取")
-      .addToggle((t) =>
-        t.setValue(s.autoSyncEnabled).onChange(async (v) => {
+      .setName(t("settings.autoSyncEnabled.name"))
+      .setDesc(t("settings.autoSyncEnabled.desc"))
+      .addToggle((c) =>
+        c.setValue(s.autoSyncEnabled).onChange(async (v) => {
           s.autoSyncEnabled = v;
           await this.plugin.saveSettings();
           this.plugin.rescheduleAutoSync();
@@ -293,8 +300,8 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("同步间隔")
-      .setDesc("分钟")
+      .setName(t("settings.interval.name"))
+      .setDesc(t("settings.interval.desc"))
       .addSlider((sl) =>
         sl
           .setLimits(30, 720, 30)
@@ -308,32 +315,32 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     // ---------- 维护 ----------
-    new Setting(containerEl).setName("维护").setHeading();
+    new Setting(containerEl).setName(t("settings.maintenance")).setHeading();
 
     new Setting(containerEl)
-      .setName("重建索引")
-      .setDesc(`扫描根目录下的笔记恢复同步记录。当前索引 ${this.plugin.index.size} 条`)
+      .setName(t("settings.rebuildIndex.name"))
+      .setDesc(t("settings.rebuildIndex.desc", { n: this.plugin.index.size }))
       .addButton((b) =>
-        b.setButtonText("重建").onClick(async () => {
+        b.setButtonText(t("settings.rebuildIndex.button")).onClick(async () => {
           b.setDisabled(true);
           const n = await this.plugin.sync.rebuildIndex();
-          new Notice(`索引已重建：${n} 条`);
+          new Notice(t("notice.indexRebuilt", { n }));
           b.setDisabled(false);
           this.display();
         }),
       );
 
     new Setting(containerEl)
-      .setName("清空索引")
-      .setDesc("清空后下次同步会把所有内容当作新条目重新写一遍（已存在的笔记会被更新而非重复创建）")
+      .setName(t("settings.clearIndex.name"))
+      .setDesc(t("settings.clearIndex.desc"))
       .addButton((b) =>
         b
-          .setButtonText("清空")
+          .setButtonText(t("settings.clearIndex.button"))
           .setWarning()
           .onClick(async () => {
             this.plugin.index.clear();
             await this.plugin.index.save();
-            new Notice("索引已清空");
+            new Notice(t("notice.indexCleared"));
             this.display();
           }),
       );
@@ -346,10 +353,10 @@ export class FavSyncSettingTab extends PluginSettingTab {
     label: string,
   ): void {
     new Setting(containerEl)
-      .setName(`${label} · 目录模板`)
-      .setDesc("可用变量：{platform} {folder} {author} {year} {month} {date} {published} {collected}")
-      .addText((t) =>
-        t
+      .setName(t("settings.dirTemplate.name", { label }))
+      .setDesc(t("settings.dirTemplate.desc"))
+      .addText((c) =>
+        c
           .setPlaceholder("{platform}/{folder}")
           .setValue(org.dirTemplate)
           .onChange(async (v) => {
@@ -359,10 +366,10 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName(`${label} · 文件名模板`)
-      .setDesc("另可用 {title} {id}。{date} = 收藏时间，{published} = 内容发布时间")
-      .addText((t) =>
-        t
+      .setName(t("settings.fileTemplate.name", { label }))
+      .setDesc(t("settings.fileTemplate.desc"))
+      .addText((c) =>
+        c
           .setPlaceholder("{title}")
           .setValue(org.fileTemplate)
           .onChange(async (v) => {
@@ -372,10 +379,10 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName(`${label} · 标签模板`)
-      .setDesc("逗号分隔，每条渲染成一个标签。例：收藏/{platform}, {platform}/{folder}")
-      .addText((t) =>
-        t
+      .setName(t("settings.tagTemplates.name", { label }))
+      .setDesc(t("settings.tagTemplates.desc"))
+      .addText((c) =>
+        c
           .setValue(org.tagTemplates.join(", "))
           .onChange(async (v) => {
             org.tagTemplates = toList(v);
@@ -384,12 +391,12 @@ export class FavSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName(`${label} · 多收藏夹处理`)
-      .setDesc("一条内容同时在多个收藏夹里时怎么放")
+      .setName(t("settings.multiFolder.name", { label }))
+      .setDesc(t("settings.multiFolder.desc"))
       .addDropdown((d) =>
         d
-          .addOption("primary", "只放第一个收藏夹（推荐）")
-          .addOption("all", "每个收藏夹各存一份")
+          .addOption("primary", t("settings.multiFolder.primary"))
+          .addOption("all", t("settings.multiFolder.all"))
           .setValue(org.multiFolderMode)
           .onChange(async (v) => {
             org.multiFolderMode = v as OrganizeSettings["multiFolderMode"];

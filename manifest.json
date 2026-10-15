@@ -1,8 +1,8 @@
 {
   "id": "gogoga-fav-sync",
   "name": "gogoga Fav Sync",
-  "version": "0.1.1",
-  "minAppVersion": "1.5.0",
+  "version": "0.2.0",
+  "minAppVersion": "1.8.7",
   "description": "Sync Bilibili favorites and X bookmarks into notes, organized by folder with automatic tags and incremental updates.",
   "author": "jackwei",
   "isDesktopOnly": false,

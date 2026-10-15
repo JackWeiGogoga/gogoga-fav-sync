@@ -4,6 +4,8 @@
 
 把 **B 站收藏夹**与 **X（Twitter）书签**同步成 Obsidian 笔记。
 
+界面语言跟随 Obsidian 的语言设置，支持简体中文和英文。
+
 ## 为什么重写
 
 替代 [omni-collector](https://github.com/simonemuller6127-png/omni-collector)。那个项目为了通吃五个平台，

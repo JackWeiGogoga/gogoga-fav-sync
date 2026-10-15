@@ -6,6 +6,7 @@
  */
 import { requestUrl } from "obsidian";
 import type { HttpClient, HttpResponse } from "../types";
+import { t } from "../i18n";
 
 function withQuery(url: string, params?: Record<string, string>): string {
   if (!params || Object.keys(params).length === 0) return url;
@@ -26,12 +27,12 @@ export const obsidianHttp: HttpClient = {
     return {
       status: res.status,
       text,
-      headers: (res.headers ?? {}) as Record<string, string | string[]>,
+      headers: res.headers ?? {},
       json<T>(): T {
         try {
           return JSON.parse(text) as T;
         } catch {
-          throw new Error(`响应不是合法 JSON（HTTP ${res.status}）：${text.slice(0, 120)}`);
+          throw new Error(t("error.http.invalidJson", { status: res.status, body: text.slice(0, 120) }));
         }
       },
     };

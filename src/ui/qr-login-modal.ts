@@ -2,6 +2,7 @@ import { App, Modal, Notice } from "obsidian";
 import qrcode from "qrcode-generator";
 import { obsidianHttp } from "../core/http";
 import { generateQr, pollQr, type QrSession } from "../sources/bilibili-login";
+import { t } from "../i18n";
 
 const POLL_INTERVAL_MS = 2000;
 const QR_SIZE = 220;
@@ -57,9 +58,9 @@ export class BilibiliQrLoginModal extends Modal {
     contentEl.empty();
     contentEl.addClass("fav-sync-qr-modal");
 
-    contentEl.createEl("h3", { text: "扫码登录 B 站", cls: "fav-sync-qr-title" });
+    contentEl.createEl("h3", { text: t("qr.title"), cls: "fav-sync-qr-title" });
     contentEl.createEl("p", {
-      text: "用手机 B 站 App 扫描下方二维码，登录信息会自动填入设置。",
+      text: t("qr.hint"),
       cls: "fav-sync-qr-hint",
     });
 
@@ -68,9 +69,9 @@ export class BilibiliQrLoginModal extends Modal {
     this.overlayEl = box.createDiv({ cls: "fav-sync-qr-overlay" });
     this.overlayEl.hide();
 
-    this.statusEl = contentEl.createDiv({ cls: "fav-sync-qr-status", text: "正在获取二维码…" });
+    this.statusEl = contentEl.createDiv({ cls: "fav-sync-qr-status", text: t("qr.loading") });
 
-    const refresh = contentEl.createEl("button", { text: "刷新二维码", cls: "fav-sync-qr-refresh" });
+    const refresh = contentEl.createEl("button", { text: t("qr.refresh"), cls: "fav-sync-qr-refresh" });
     refresh.onclick = () => void this.start();
 
     void this.start();
@@ -104,12 +105,12 @@ export class BilibiliQrLoginModal extends Modal {
   private async start(): Promise<void> {
     this.stopPolling();
     this.overlayEl.hide();
-    this.setStatus("正在获取二维码…");
+    this.setStatus(t("qr.loading"));
     try {
       this.session = await generateQr(obsidianHttp);
       if (this.closed) return;
       drawQr(this.canvas, this.session.url);
-      this.setStatus("请用 B 站 App 扫码");
+      this.setStatus(t("qr.scanPrompt"));
       this.timer = window.setInterval(() => void this.tick(), POLL_INTERVAL_MS);
     } catch (err) {
       this.setStatus(err instanceof Error ? err.message : String(err), "error");
@@ -123,21 +124,21 @@ export class BilibiliQrLoginModal extends Modal {
       if (this.closed) return;
       switch (status.state) {
         case "pending":
-          this.setStatus("请用 B 站 App 扫码");
+          this.setStatus(t("qr.scanPrompt"));
           break;
         case "scanned":
-          this.setStatus("已扫描，请在手机上确认登录");
+          this.setStatus(t("qr.scanned"));
           break;
         case "expired":
           this.stopPolling();
-          this.showOverlay("已失效");
-          this.setStatus("二维码已失效，点下方按钮刷新", "error");
+          this.showOverlay(t("qr.expiredOverlay"));
+          this.setStatus(t("qr.expired"), "error");
           break;
         case "ok": {
           this.stopPolling();
-          this.setStatus("登录成功，正在保存…", "ok");
+          this.setStatus(t("qr.saving"), "ok");
           await this.onSuccess(status.cookie);
-          new Notice("B 站登录成功，Cookie 已自动填入");
+          new Notice(t("notice.bilibiliLoginOk"));
           this.close();
           break;
         }

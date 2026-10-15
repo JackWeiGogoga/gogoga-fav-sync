@@ -1,18 +1,20 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type FavSyncPlugin from "../main";
 import type { Platform, SyncProgress, SyncReport } from "../types";
+import { t, type I18nKey } from "../i18n";
 
 export const VIEW_TYPE_FAV_SYNC = "fav-sync-view";
 
 interface PlatformMeta {
   key: Platform;
-  label: string;
+  /** 文案 key，而非文案本身：模块加载时语言还没确定，用到时再取。 */
+  labelKey: I18nKey;
   icon: string;
 }
 
 const PLATFORMS: PlatformMeta[] = [
-  { key: "bilibili", label: "B 站", icon: "tv" },
-  { key: "x", label: "X", icon: "message-circle" },
+  { key: "bilibili", labelKey: "platform.bilibili", icon: "tv" },
+  { key: "x", labelKey: "platform.x", icon: "message-circle" },
 ];
 
 export class FavSyncView extends ItemView {
@@ -35,7 +37,7 @@ export class FavSyncView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Fav Sync";
+    return t("view.title");
   }
 
   getIcon(): string {
@@ -53,17 +55,17 @@ export class FavSyncView extends ItemView {
 
     // 头部
     const header = root.createDiv({ cls: "fav-sync-header" });
-    header.createEl("h3", { text: "收藏同步", cls: "fav-sync-title" });
-    const settingsBtn = header.createEl("button", { cls: "fav-sync-icon-btn", attr: { "aria-label": "设置" } });
+    header.createEl("h3", { text: t("view.title"), cls: "fav-sync-title" });
+    const settingsBtn = header.createEl("button", { cls: "fav-sync-icon-btn", attr: { "aria-label": t("view.settings") } });
     setIcon(settingsBtn, "settings");
     settingsBtn.onclick = () => this.plugin.openSettings();
 
     // 主操作
-    const syncAll = root.createEl("button", { text: "同步全部", cls: "fav-sync-primary" });
+    const syncAll = root.createEl("button", { text: t("view.syncAll"), cls: "fav-sync-primary" });
     syncAll.onclick = () => void this.runSync(null);
 
     // 状态区
-    this.statusEl = root.createDiv({ cls: "fav-sync-status", text: "就绪" });
+    this.statusEl = root.createDiv({ cls: "fav-sync-status", text: t("view.ready") });
     this.barWrapEl = root.createDiv({ cls: "fav-sync-bar-wrap" });
     this.barEl = this.barWrapEl.createDiv({ cls: "fav-sync-bar" });
     this.barWrapEl.hide();
@@ -77,13 +79,13 @@ export class FavSyncView extends ItemView {
 
     // 底部链接
     const footer = root.createDiv({ cls: "fav-sync-footer" });
-    const rebuild = footer.createEl("a", { text: "重建索引", cls: "fav-sync-link" });
+    const rebuild = footer.createEl("a", { text: t("view.rebuildIndex"), cls: "fav-sync-link" });
     rebuild.onclick = async (e) => {
       e.preventDefault();
       if (this.busy) return;
-      this.setBusy(true, "扫描笔记…");
+      this.setBusy(true, t("view.scanningNotes"));
       const n = await this.plugin.sync.rebuildIndex((p) => this.onProgress(p));
-      this.setBusy(false, `索引已重建：${n} 条`);
+      this.setBusy(false, t("notice.indexRebuilt", { n }));
       this.renderCards();
     };
   }
@@ -101,14 +103,18 @@ export class FavSyncView extends ItemView {
       setIcon(iconEl, p.icon);
 
       const info = left.createDiv({ cls: "fav-sync-card-info" });
-      info.createDiv({ text: p.label, cls: "fav-sync-card-name" });
+      info.createDiv({ text: t(p.labelKey), cls: "fav-sync-card-name" });
       const last = s.lastSyncAt[p.key];
       info.createDiv({
-        text: enabled ? (last ? `上次 ${this.relTime(last)}` : "尚未同步") : "未启用",
+        text: enabled
+          ? last
+            ? t("view.lastSync", { time: this.relTime(last) })
+            : t("view.neverSynced")
+          : t("view.disabled"),
         cls: "fav-sync-card-sub",
       });
 
-      const btn = card.createEl("button", { text: "同步", cls: "fav-sync-card-btn" });
+      const btn = card.createEl("button", { text: t("view.sync"), cls: "fav-sync-card-btn" });
       btn.disabled = !enabled || this.busy;
       btn.onclick = () => void this.runSync(p.key);
     }
@@ -118,25 +124,25 @@ export class FavSyncView extends ItemView {
     const diff = Date.now() - new Date(iso).getTime();
     if (Number.isNaN(diff)) return "—";
     const min = Math.floor(diff / 60000);
-    if (min < 1) return "刚刚";
-    if (min < 60) return `${min} 分钟前`;
+    if (min < 1) return t("view.justNow");
+    if (min < 60) return t("view.minutesAgo", { n: min });
     const h = Math.floor(min / 60);
-    if (h < 24) return `${h} 小时前`;
-    return `${Math.floor(h / 24)} 天前`;
+    if (h < 24) return t("view.hoursAgo", { n: h });
+    return t("view.daysAgo", { n: Math.floor(h / 24) });
   }
 
   private setBusy(busy: boolean, status?: string): void {
     this.busy = busy;
     if (status) this.statusEl.setText(status);
     this.barWrapEl.toggle(busy);
-    if (!busy) this.barEl.style.width = "0%";
+    if (!busy) this.barEl.setCssProps({ width: "0%" });
     this.renderCards();
   }
 
   private onProgress(p: SyncProgress): void {
     this.statusEl.setText(p.message);
     if (p.total && p.total > 0 && p.current !== undefined) {
-      this.barEl.style.width = `${Math.min(100, Math.round((p.current / p.total) * 100))}%`;
+      this.barEl.setCssProps({ width: `${Math.min(100, Math.round((p.current / p.total) * 100))}%` });
     }
     if (p.phase === "error") this.statusEl.addClass("is-error");
     else this.statusEl.removeClass("is-error");
@@ -145,7 +151,7 @@ export class FavSyncView extends ItemView {
   /** platform 为 null 表示同步全部已启用平台。 */
   private async runSync(platform: Platform | null): Promise<void> {
     if (this.busy) return;
-    this.setBusy(true, "开始同步…");
+    this.setBusy(true, t("view.startingSync"));
     try {
       const reports = await this.plugin.runSync(platform, (p) => this.onProgress(p));
       this.showReports(reports);
@@ -158,25 +164,34 @@ export class FavSyncView extends ItemView {
   private showReports(reports: SyncReport[]): void {
     this.reportEl.empty();
     if (reports.length === 0) {
-      this.statusEl.setText("没有启用的平台");
+      this.statusEl.setText(t("notice.noPlatforms"));
       return;
     }
-    this.reportEl.createDiv({ text: "上次结果", cls: "fav-sync-report-title" });
+    this.reportEl.createDiv({ text: t("view.lastResult"), cls: "fav-sync-report-title" });
     let ok = true;
     for (const r of reports) {
       const row = this.reportEl.createDiv({ cls: "fav-sync-report-row" });
-      const label = r.platform === "bilibili" ? "B 站" : "X";
+      const label = t(r.platform === "bilibili" ? "platform.bilibili" : "platform.x");
       if (r.errors.length > 0) {
         ok = false;
         row.addClass("is-error");
-        row.setText(`${label}：${r.errors[0]}`);
+        row.setText(t("view.reportError", { label, error: r.errors[0] ?? "" }));
       } else {
-        const req = r.requests > 0 ? ` · ${r.requests} 次请求` : "";
-        const skip = r.skippedGroups > 0 ? ` · 跳过 ${r.skippedGroups} 个收藏夹` : "";
-        row.setText(`${label}：抓取 ${r.fetched} · 新增 ${r.created} · 更新 ${r.updated}${req}${skip}`);
+        const requests = r.requests > 0 ? t("view.reportRequests", { n: r.requests }) : "";
+        const skipped = r.skippedGroups > 0 ? t("view.reportSkipped", { n: r.skippedGroups }) : "";
+        row.setText(
+          t("view.reportRow", {
+            label,
+            fetched: r.fetched,
+            created: r.created,
+            updated: r.updated,
+            requests,
+            skipped,
+          }),
+        );
       }
     }
-    this.statusEl.setText(ok ? "同步完成" : "同步结束，有错误");
+    this.statusEl.setText(ok ? t("view.syncDone") : t("view.syncDoneWithErrors"));
     this.statusEl.toggleClass("is-error", !ok);
   }
 }

@@ -2,15 +2,23 @@
 
 /** Windows/macOS 都不允许或会让 Obsidian 困扰的字符。 */
 const ILLEGAL = /[\\/:*?"<>|#^[\]]/g;
-const CONTROL = /[\u0000-\u001f\u007f]/g;
+
+/** 去掉 C0 控制字符与 DEL（U+0000–U+001F、U+007F）。按码点过滤，避免正则里直接写控制字符。 */
+function stripControl(input: string): string {
+  let out = "";
+  for (const ch of input) {
+    const code = ch.charCodeAt(0);
+    if (code > 0x1f && code !== 0x7f) out += ch;
+  }
+  return out;
+}
 
 /**
  * 清洗成安全的文件/目录名：去非法字符、压缩空白、限长。
  * 保留中文与常见符号，尽量维持可读性。
  */
 export function sanitizeName(input: string, maxLen = 80): string {
-  const cleaned = (input || "")
-    .replace(CONTROL, "")
+  const cleaned = stripControl(input || "")
     .replace(ILLEGAL, " ")
     .replace(/\s+/g, " ")
     .replace(/^[.\s]+|[.\s]+$/g, "")

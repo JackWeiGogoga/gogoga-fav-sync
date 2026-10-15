@@ -1,4 +1,5 @@
-import { Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { Notice, Plugin, WorkspaceLeaf, getLanguage } from "obsidian";
+import { setLocale, t } from "./i18n";
 import type { Platform, ProgressFn, SyncReport } from "./types";
 import { DEFAULT_SETTINGS, mergeSettings, type FavSyncSettings } from "./settings";
 import { IndexStore } from "./core/index-store";
@@ -19,6 +20,8 @@ export default class FavSyncPlugin extends Plugin {
   private syncing = false;
 
   async onload(): Promise<void> {
+    // 先定语言：之后注册的命令名、ribbon 提示都按它取文案
+    setLocale(getLanguage());
     this.settings = mergeSettings(await this.loadData());
 
     this.index = new IndexStore(this.app, `${this.manifest.dir}/index.json`);
@@ -28,44 +31,44 @@ export default class FavSyncPlugin extends Plugin {
     this.registerView(VIEW_TYPE_FAV_SYNC, (leaf: WorkspaceLeaf) => new FavSyncView(leaf, this));
     this.addSettingTab(new FavSyncSettingTab(this.app, this));
 
-    this.addRibbonIcon("bookmark", "收藏同步", () => void this.activateView());
+    this.addRibbonIcon("bookmark", t("ribbon.open"), () => void this.activateView());
 
     this.addCommand({
       id: "open-sidebar",
-      name: "打开收藏同步面板",
+      name: t("cmd.openSidebar"),
       callback: () => void this.activateView(),
     });
     this.addCommand({
       id: "sync-all",
-      name: "同步全部平台",
+      name: t("cmd.syncAll"),
       callback: () => void this.runSyncWithNotice(null),
     });
     this.addCommand({
       id: "sync-bilibili",
-      name: "同步 B 站收藏",
+      name: t("cmd.syncBilibili"),
       callback: () => void this.runSyncWithNotice("bilibili"),
     });
     this.addCommand({
       id: "sync-x",
-      name: "同步 X 书签",
+      name: t("cmd.syncX"),
       callback: () => void this.runSyncWithNotice("x"),
     });
     this.addCommand({
       id: "sync-all-full",
-      name: "全量同步（忽略增量记录，重扫全部）",
+      name: t("cmd.syncAllFull"),
       callback: () => void this.runSyncWithNotice(null, true),
     });
     this.addCommand({
       id: "bilibili-qr-login",
-      name: "B 站扫码登录",
+      name: t("cmd.bilibiliQrLogin"),
       callback: () => this.openBilibiliQrLogin(),
     });
     this.addCommand({
       id: "rebuild-index",
-      name: "重建同步索引",
+      name: t("cmd.rebuildIndex"),
       callback: async () => {
         const n = await this.sync.rebuildIndex();
-        new Notice(`索引已重建：${n} 条`);
+        new Notice(t("notice.indexRebuilt", { n }));
       },
     });
 
@@ -116,7 +119,7 @@ export default class FavSyncPlugin extends Plugin {
     full = false,
   ): Promise<SyncReport[]> {
     if (this.syncing) {
-      new Notice("同步正在进行中");
+      new Notice(t("notice.syncInProgress"));
       return [];
     }
     this.syncing = true;
@@ -144,28 +147,28 @@ export default class FavSyncPlugin extends Plugin {
   }
 
   private async runSyncWithNotice(platform: Platform | null, full = false): Promise<void> {
-    const notice = new Notice(full ? "全量同步中…" : "同步中…", 0);
+    const notice = new Notice(full ? t("notice.fullSyncing") : t("notice.syncing"), 0);
     try {
       const reports = await this.runSync(
         platform,
-        (p) => notice.setMessage(`同步中：${p.message}`),
+        (p) => notice.setMessage(t("notice.syncingProgress", { message: p.message })),
         full,
       );
       if (reports.length === 0) {
-        notice.setMessage("没有启用的平台");
+        notice.setMessage(t("notice.noPlatforms"));
       } else {
         const summary = reports
           .map((r) => {
-            const label = r.platform === "bilibili" ? "B 站" : "X";
+            const label = t(r.platform === "bilibili" ? "platform.bilibili" : "platform.x");
             return r.errors.length > 0
-              ? `${label} 失败：${r.errors[0]}`
-              : `${label} 新增 ${r.created} / 更新 ${r.updated}`;
+              ? t("notice.platformFailed", { label, error: r.errors[0] ?? "" })
+              : t("notice.platformDone", { label, created: r.created, updated: r.updated });
           })
           .join("\n");
         notice.setMessage(summary);
       }
     } catch (err) {
-      notice.setMessage(`同步失败：${err instanceof Error ? err.message : String(err)}`);
+      notice.setMessage(t("notice.syncFailed", { error: err instanceof Error ? err.message : String(err) }));
     } finally {
       window.setTimeout(() => notice.hide(), 6000);
     }
@@ -197,7 +200,7 @@ export default class FavSyncPlugin extends Plugin {
   /** 设置面板里的「测试连接」：返回收藏夹名列表。 */
   async testBilibili(): Promise<string[]> {
     const cookie = normalizeCookieInput(this.settings.bilibili.cookie);
-    if (!cookie) throw new Error("请先填写 Cookie");
+    if (!cookie) throw new Error(t("error.noCookie"));
     return listBilibiliFolders(obsidianHttp, cookie);
   }
 

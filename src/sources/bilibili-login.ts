@@ -8,6 +8,7 @@
  * 成功时 data.url 的查询串里带着 SESSDATA / bili_jct / DedeUserID。
  */
 import type { HttpClient } from "../types";
+import { t } from "../i18n";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -43,21 +44,21 @@ interface BiliResp<T> {
 
 function parseJson<T>(res: { status: number; text: string; json<X>(): X }, what: string): BiliResp<T> {
   if (res.text.trimStart().startsWith("<")) {
-    throw new BilibiliLoginError(`${what}：B 站返回了网页而非数据，可能触发了风控，请稍后再试`);
+    throw new BilibiliLoginError(t("error.login.htmlResponse", { what }));
   }
   try {
     return res.json<BiliResp<T>>();
   } catch {
-    throw new BilibiliLoginError(`${what}：响应无法解析（HTTP ${res.status}）`);
+    throw new BilibiliLoginError(t("error.bili.unparsable", { what, status: res.status }));
   }
 }
 
 /** 申请一个新的登录二维码。 */
 export async function generateQr(http: HttpClient): Promise<QrSession> {
   const res = await http.get(GENERATE_URL, { headers: headers() });
-  const json = parseJson<{ url?: string; qrcode_key?: string }>(res, "生成二维码");
+  const json = parseJson<{ url?: string; qrcode_key?: string }>(res, t("error.login.generate"));
   if (json.code !== 0 || !json.data?.url || !json.data?.qrcode_key) {
-    throw new BilibiliLoginError(`生成二维码失败：${json.code} ${json.message ?? ""}`);
+    throw new BilibiliLoginError(t("error.login.generateFailed", { code: json.code, message: json.message ?? "" }));
   }
   return { url: json.data.url, key: json.data.qrcode_key };
 }
@@ -117,10 +118,10 @@ export async function pollQr(http: HttpClient, key: string): Promise<QrStatus> {
   const res = await http.get(POLL_URL, { params: { qrcode_key: key }, headers: headers() });
   const json = parseJson<{ url?: string; refresh_token?: string; code?: number; message?: string }>(
     res,
-    "查询扫码状态",
+    t("error.login.poll"),
   );
   if (json.code !== 0) {
-    throw new BilibiliLoginError(`查询扫码状态失败：${json.code} ${json.message ?? ""}`);
+    throw new BilibiliLoginError(t("error.login.pollFailed", { code: json.code, message: json.message ?? "" }));
   }
   switch (json.data?.code) {
     case 0: {
@@ -128,11 +129,8 @@ export async function pollQr(http: HttpClient, key: string): Promise<QrStatus> {
       const cookie =
         cookieFromSetCookie(res.headers) || cookieFromCrossDomainUrl(json.data?.url ?? "");
       if (!cookie.includes("SESSDATA=")) {
-        const seen = Object.keys(res.headers).join(", ") || "无";
-        throw new BilibiliLoginError(
-          `登录成功但没取到 SESSDATA：响应头里没有可用的 Set-Cookie（收到的头：${seen}）。` +
-            `请改用手动粘贴 Cookie。`,
-        );
+        const seen = Object.keys(res.headers).join(", ") || t("error.login.none");
+        throw new BilibiliLoginError(t("error.login.noSessdata", { headers: seen }));
       }
       return { state: "ok", cookie, refreshToken: json.data?.refresh_token };
     }

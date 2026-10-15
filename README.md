@@ -4,7 +4,7 @@
 
 Sync your **Bilibili favorites** and **X (Twitter) bookmarks** into Obsidian notes.
 
-The plugin interface is currently in Simplified Chinese.
+The interface follows Obsidian's language setting: it is in English, or in Simplified Chinese when Obsidian is set to Chinese.
 
 ## Why a rewrite
 

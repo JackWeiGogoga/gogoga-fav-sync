@@ -37,7 +37,6 @@ function ii(a: number, b: number, c: number, d: number, x: number, s: number, t:
 }
 
 function binlMD5(x: number[], len: number): number[] {
-  /* eslint-disable no-param-reassign */
   x[len >> 5] |= 0x80 << len % 32;
   x[(((len + 64) >>> 9) << 4) + 14] = len;
 
