@@ -88,6 +88,10 @@ B 站 WBI 签名的混排表与算法参考 [omni-collector](https://github.com/
 - Cookie 以明文保存在本插件的 `data.json` 里（会随 vault 一起同步），只发给对应平台；没有遥测，也不经过任何第三方服务。
 - 使用平台的非公开接口，可能随平台改版失效，也可能不符合平台的服务条款，请自行评估。
 
+## 更新日志
+
+每个版本的变化见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)（[English](CHANGELOG.md)）。发版前先写好新版本的条目：Release 说明从这里取，没写时发布会失败。
+
 ## 许可
 
 MIT，见 [LICENSE](https://github.com/JackWeiGogoga/gogoga-fav-sync/blob/main/LICENSE)。

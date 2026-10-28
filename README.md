@@ -84,6 +84,10 @@ The mixing table and algorithm for Bilibili WBI signing are based on [omni-colle
 - Cookies are stored in plain text in this plugin's `data.json` (which syncs along with your vault) and are only sent to the matching platform. There is no telemetry, and no third-party service is involved.
 - The plugin uses non-public platform APIs. They may stop working when the platforms change, and using them may not comply with the platforms' terms of service. Evaluate this for yourself.
 
+## Changelog
+
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md) ([中文](CHANGELOG.zh-CN.md)). Add the new version there before releasing: the release notes are taken from it, and the release fails when the entry is missing.
+
 ## License
 
 MIT. See [LICENSE](https://github.com/JackWeiGogoga/gogoga-fav-sync/blob/main/LICENSE).
