@@ -6,6 +6,23 @@ Sync your **Bilibili favorites** and **X (Twitter) bookmarks** into Obsidian not
 
 The interface follows Obsidian's language setting: it is in English, or in Simplified Chinese when Obsidian is set to Chinese.
 
+## Install
+
+### With BRAT (recommended)
+
+This plugin isn't in the community directory. Install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat), which also keeps it updated: install and enable **BRAT** from the community plugins, click **Add beta plugin** in BRAT's settings, enter `https://github.com/JackWeiGogoga/gogoga-fav-sync`, then enable **gogoga Fav Sync** under Settings → Community plugins.
+
+### Manual install
+
+For offline machines (such as a company network) or to pin a specific version:
+
+1. Open the [Releases page](https://github.com/JackWeiGogoga/gogoga-fav-sync/releases/latest) and download the three files `main.js`, `manifest.json`, `styles.css` under **Assets**. **Don't download the Source code archives**: they are the source code, which Obsidian can't load.
+2. In your vault's folder, go to `.obsidian/plugins/`, create a folder named `gogoga-fav-sync`, and put the files in it, so you end up with paths like `<vault>/.obsidian/plugins/gogoga-fav-sync/main.js`.
+   - `.obsidian` is a hidden folder: press `⌘ ⇧ .` in Finder on macOS; on Windows, tick **Hidden items** under **View** in File Explorer.
+3. Restart Obsidian (or click the refresh button under Settings → Community plugins), then enable **gogoga Fav Sync** in the list of installed plugins.
+
+On phones, where moving files around is awkward, use BRAT.
+
 ## Why a rewrite
 
 This plugin replaces [omni-collector](https://github.com/simonemuller6127-png/omni-collector). To cover five platforms, that project uses a heavy architecture of an Obsidian plugin, a standalone Node engine, IPC, SQLite, and Playwright. The costs:
