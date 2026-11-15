@@ -105,6 +105,10 @@ B 站 WBI 签名的混排表与算法参考 [omni-collector](https://github.com/
 - Cookie 以明文保存在本插件的 `data.json` 里（会随 vault 一起同步），只发给对应平台；没有遥测，也不经过任何第三方服务。
 - 使用平台的非公开接口，可能随平台改版失效，也可能不符合平台的服务条款，请自行评估。
 
+## 交流
+
+用法问题、建议可以加微信 `JackWeiGogoga`（备注「gogoga」），我拉你进交流群，二维码在[官网交流页](https://obsidian.gogoga.top/community/)。bug 和功能建议请在本仓库的 [Issues](https://github.com/JackWeiGogoga/gogoga-fav-sync/issues) 里提，附上截图或录屏和版本号。
+
 ## 更新日志
 
 每个版本的变化见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)（[English](CHANGELOG.md)）。发版前先写好新版本的条目：Release 说明从这里取，没写时发布会失败。

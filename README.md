@@ -101,6 +101,10 @@ The mixing table and algorithm for Bilibili WBI signing are based on [omni-colle
 - Cookies are stored in plain text in this plugin's `data.json` (which syncs along with your vault) and are only sent to the matching platform. There is no telemetry, and no third-party service is involved.
 - The plugin uses non-public platform APIs. They may stop working when the platforms change, and using them may not comply with the platforms' terms of service. Evaluate this for yourself.
 
+## Community
+
+Bugs and feature requests: please open an [issue](https://github.com/JackWeiGogoga/gogoga-fav-sync/issues) with a screenshot or recording and the version. Chinese-speaking users can also join the WeChat group: add `JackWeiGogoga` with the note “gogoga”, or scan the QR code on the [community page](https://obsidian.gogoga.top/en/community/).
+
 ## Changelog
 
 What changed in each version is in [CHANGELOG.md](CHANGELOG.md) ([中文](CHANGELOG.zh-CN.md)). Add the new version there before releasing: the release notes are taken from it, and the release fails when the entry is missing.
