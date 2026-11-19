@@ -2,6 +2,8 @@
 
 **English** | [简体中文](https://github.com/JackWeiGogoga/gogoga-fav-sync/blob/main/README.zh-CN.md)
 
+**Website:** [obsidian.gogoga.top](https://obsidian.gogoga.top/en/plugins/gogoga-fav-sync/) — screenshots, features and downloads.
+
 Sync your **Bilibili favorites** and **X (Twitter) bookmarks** into Obsidian notes.
 
 The interface follows Obsidian's language setting: it is in English, or in Simplified Chinese when Obsidian is set to Chinese.

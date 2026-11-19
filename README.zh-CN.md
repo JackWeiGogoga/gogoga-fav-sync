@@ -2,6 +2,8 @@
 
 [English](https://github.com/JackWeiGogoga/gogoga-fav-sync/blob/main/README.md) | **简体中文**
 
+**官网：**[obsidian.gogoga.top](https://obsidian.gogoga.top/plugins/gogoga-fav-sync/)，截图、功能介绍和下载。
+
 把 **B 站收藏夹**与 **X（Twitter）书签**同步成 Obsidian 笔记。
 
 界面语言跟随 Obsidian 的语言设置，支持简体中文和英文。
